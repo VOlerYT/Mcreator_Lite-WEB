@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCreator Web Full</title>
+<style>
+/* General */
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:0; background:#e6f2ff; color:#333; }
+header { background:#1e3a5f; color:white; padding:1em; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);}
+main { padding:1em; }
+nav { display:flex; flex-wrap:wrap; margin-bottom:1em; justify-content:center; }
+nav button { flex:1; padding:0.6em; margin:0.2em; cursor:pointer; border:none; border-radius:6px; background:#3a6ea5; color:white; font-weight:bold; transition:0.2s; }
+nav button.active, nav button:hover { background:#1e3a5f; }
+section { display:none; background:white; padding:1em; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.2); margin-bottom:1em; }
+section.active { display:block; }
+input, select, textarea, button { width:100%; margin:0.5em 0; padding:0.5em; box-sizing:border-box; border-radius:6px; border:1px solid #ccc; }
+textarea { height:120px; resize:vertical; }
+img.preview { max-width:120px; margin:0.5em 0; display:block; border:1px solid #aaa; border-radius:6px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+button { background:#3a6ea5; color:white; font-weight:bold; cursor:pointer; transition:0.2s; }
+button:hover { background:#1e3a5f; }
+</style>
+</head>
+<body>
+
+<header>
+<h1>MCreator Web Full</h1>
+<p>Crea tus mods de Minecraft desde el navegador</p>
+</header>
+
+<main>
+<nav>
+<button class="tab-btn active" onclick="showTab('blocks')">Bloques</button>
+<button class="tab-btn" onclick="showTab('items')">Items</button>
+<button class="tab-btn" onclick="showTab('mobs')">Mobs</button>
+<button class="tab-btn" onclick="showTab('gui')">GUI</button>
+<button class="tab-btn" onclick="showTab('commands')">Comandos</button>
+<button class="tab-btn" onclick="showTab('armor')">Armaduras</button>
+<button class="tab-btn" onclick="showTab('export')">Exportar</button>
+</nav>
+
+<!-- Bloques -->
+<section id="blocks" class="active">
+<h2>Crear Bloque</h2>
+<input type="text" id="blockName" placeholder="Nombre del bloque">
+<input type="color" id="blockColor" value="#ff0000">
+<input type="number" id="blockHardness" placeholder="Dureza" value="1.5" step="0.1">
+<input type="number" id="blockResistance" placeholder="Resistencia" value="10" step="0.1">
+<input type="file" id="blockTexture" accept="image/*">
+<img id="blockTexturePreview" class="preview" src="">
+<button onclick="generateBlock()">Generar Bloque</button>
+<textarea id="blockOutput" readonly></textarea>
+</section>
+
+<!-- Items -->
+<section id="items">
+<h2>Crear Item</h2>
+<input type="text" id="itemName" placeholder="Nombre del item">
+<input type="number" id="itemDamage" placeholder="Daño" value="0">
+<input type="number" id="itemStack" placeholder="Stack" value="64">
+<input type="file" id="itemTexture" accept="image/*">
+<img id="itemTexturePreview" class="preview" src="">
+<button onclick="generateItem()">Generar Item</button>
+<textarea id="itemOutput" readonly></textarea>
+</section>
+
+<!-- Mobs -->
+<section id="mobs">
+<h2>Crear Mob</h2>
+<input type="text" id="mobName" placeholder="Nombre del mob">
+<input type="file" id="mobModel" accept=".json,.obj,.png">
+<img id="mobModelPreview" class="preview" src="">
+<button onclick="generateMob()">Generar Mob</button>
+<textarea id="mobOutput" readonly></textarea>
+</section>
+
+<!-- GUI -->
+<section id="gui">
+<h2>Crear GUI</h2>
+<input type="text" id="guiName" placeholder="Nombre de GUI">
+<input type="file" id="guiImage" accept="image/*">
+<img id="guiImagePreview" class="preview" src="">
+<button onclick="generateGUI()">Generar GUI</button>
+<textarea id="guiOutput" readonly></textarea>
+</section>
+
+<!-- Comandos -->
+<section id="commands">
+<h2>Comandos</h2>
+<input type="text" id="commandName" placeholder="Nombre del comando">
+<textarea id="commandCode" placeholder="Escribe el código o comando aquí"></textarea>
+<button onclick="generateCommand()">Generar Comando</button>
+<textarea id="commandOutput" readonly></textarea>
+</section>
+
+<!-- Armaduras -->
+<section id="armor">
+<h2>Crear Armadura</h2>
+<input type="text" id="armorName" placeholder="Nombre de la armadura">
+<select id="armorType">
+<option value="helmet">Casco</option>
+<option value="chestplate">Pechera</option>
+<option value="leggings">Pantalón</option>
+<option value="boots">Botas</option>
+</select>
+<input type="file" id="armorTexture" accept="image/*">
+<img id="armorPreview" class="preview" src="">
+<button onclick="generateArmor()">Generar Armadura</button>
+<textarea id="armorOutput" readonly></textarea>
+</section>
+
+<!-- Exportar -->
+<section id="export">
+<h2>Exportar Mod</h2>
+<label>Versión de Minecraft:</label>
+<select id="mcVersion">
+<option>1.20.1</option>
+<option>1.19.4</option>
+<option>1.18.2</option>
+</select>
+<label>Modloader:</label>
+<select id="modLoader">
+<option>Forge</option>
+<option>Fabric</option>
+</select>
+<button onclick="exportMod()">Descargar ZIP del Mod</button>
+</section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.11.0/dist/jszip.min.js"></script>
+<script>
+// Pestañas
+function showTab(tab){
+  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(tab).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+// Previsualización
+['blockTexture','itemTexture','mobModel','guiImage','armorTexture'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', e=>{
+    const file=e.target.files[0];
+    if(file) document.getElementById(id+'Preview').src=URL.createObjectURL(file);
+  });
+});
+
+// Generar elementos
+function generateBlock(){
+  const block={type:"block",name:document.getElementById('blockName').value.trim(),color:document.getElementById('blockColor').value,hardness:parseFloat(document.getElementById('blockHardness').value),resistance:parseFloat(document.getElementById('blockResistance').value),texture:document.getElementById('blockTexture').files[0]?.name||""};
+  document.getElementById('blockOutput').value=JSON.stringify(block,null,2);
+}
+function generateItem(){
+  const item={type:"item",name:document.getElementById('itemName').value.trim(),damage:parseInt(document.getElementById('itemDamage').value),stack:parseInt(document.getElementById('itemStack').value),texture:document.getElementById('itemTexture').files[0]?.name||""};
+  document.getElementById('itemOutput').value=JSON.stringify(item,null,2);
+}
+function generateMob(){
+  const mob={type:"mob",name:document.getElementById('mobName').value.trim(),model:document.getElementById('mobModel').files[0]?.name||""};
+  document.getElementById('mobOutput').value=JSON.stringify(mob,null,2);
+}
+function generateGUI(){
+  const gui={type:"gui",name:document.getElementById('guiName').value.trim(),image:document.getElementById('guiImage').files[0]?.name||""};
+  document.getElementById('guiOutput').value=JSON.stringify(gui,null,2);
+}
+function generateCommand(){
+  const command={type:"command",name:document.getElementById('commandName').value.trim(),code:document.getElementById('commandCode').value};
+  document.getElementById('commandOutput').value=JSON.stringify(command,null,2);
+}
+function generateArmor(){
+  const armor={type:"armor",name:document.getElementById('armorName').value.trim(),slot:document.getElementById('armorType').value,texture:document.getElementById('armorTexture').files[0]?.name||""};
+  document.getElementById('armorOutput').value=JSON.stringify(armor,null,2);
+}
+
+// Exportar ZIP
+async function exportMod(){
+  const zip=new JSZip();
+  const outputs=[
+    ['blocks.json','blockOutput','blockTexture'],
+    ['items.json','itemOutput','itemTexture'],
+    ['mobs.json','mobOutput','mobModel'],
+    ['gui.json','guiOutput','guiImage'],
+    ['commands.json','commandOutput',''],
+    ['armors.json','armorOutput','armorTexture']
+  ];
+  for(const [fileName,textareaId,fileInputId] of outputs){
+    const text=document.getElementById(textareaId).value;
+    if(text) zip.file(fileName,text);
+    if(fileInputId){
+      const f=document.getElementById(fileInputId).files[0];
+      if(f) zip.file(f.name,f);
+    }
+  }
+  const metadata={mcVersion:document.getElementById('mcVersion').value,modLoader:document.getElementById('modLoader').value};
+  zip.file("metadata.json",JSON.stringify(metadata,null,2));
+
+  const content=await zip.generateAsync({type:"blob"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(content);
+  a.download="mod_export.zip";
+  a.target="_blank"; // abrir en nueva pestaña
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+</script>
+
+</body>
+</html>
