@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MCreator Web Full</title>
+<title>MCreator Web Lite Modular</title>
 <style>
-/* General */
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:0; background:#e6f2ff; color:#333; }
+body { font-family: Arial, sans-serif; margin:0; background:#e6f2ff; color:#333; }
 header { background:#1e3a5f; color:white; padding:1em; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);}
 main { padding:1em; }
 nav { display:flex; flex-wrap:wrap; margin-bottom:1em; justify-content:center; }
@@ -24,7 +23,7 @@ button:hover { background:#1e3a5f; }
 <body>
 
 <header>
-<h1>MCreator Web Full</h1>
+<h1>MCreator Web Lite Modular</h1>
 <p>Crea tus mods de Minecraft desde el navegador</p>
 </header>
 
@@ -49,6 +48,7 @@ button:hover { background:#1e3a5f; }
 <input type="file" id="blockTexture" accept="image/*">
 <img id="blockTexturePreview" class="preview" src="">
 <button onclick="generateBlock()">Generar Bloque</button>
+<button onclick="clearFile('blockTexture')">Eliminar Textura</button>
 <textarea id="blockOutput" readonly></textarea>
 </section>
 
@@ -61,6 +61,7 @@ button:hover { background:#1e3a5f; }
 <input type="file" id="itemTexture" accept="image/*">
 <img id="itemTexturePreview" class="preview" src="">
 <button onclick="generateItem()">Generar Item</button>
+<button onclick="clearFile('itemTexture')">Eliminar Textura</button>
 <textarea id="itemOutput" readonly></textarea>
 </section>
 
@@ -71,6 +72,7 @@ button:hover { background:#1e3a5f; }
 <input type="file" id="mobModel" accept=".json,.obj,.png">
 <img id="mobModelPreview" class="preview" src="">
 <button onclick="generateMob()">Generar Mob</button>
+<button onclick="clearFile('mobModel')">Eliminar Modelo</button>
 <textarea id="mobOutput" readonly></textarea>
 </section>
 
@@ -81,6 +83,7 @@ button:hover { background:#1e3a5f; }
 <input type="file" id="guiImage" accept="image/*">
 <img id="guiImagePreview" class="preview" src="">
 <button onclick="generateGUI()">Generar GUI</button>
+<button onclick="clearFile('guiImage')">Eliminar Imagen</button>
 <textarea id="guiOutput" readonly></textarea>
 </section>
 
@@ -106,6 +109,7 @@ button:hover { background:#1e3a5f; }
 <input type="file" id="armorTexture" accept="image/*">
 <img id="armorPreview" class="preview" src="">
 <button onclick="generateArmor()">Generar Armadura</button>
+<button onclick="clearFile('armorTexture')">Eliminar Textura</button>
 <textarea id="armorOutput" readonly></textarea>
 </section>
 
@@ -123,7 +127,7 @@ button:hover { background:#1e3a5f; }
 <option>Forge</option>
 <option>Fabric</option>
 </select>
-<button onclick="exportMod()">Descargar ZIP del Mod</button>
+<button onclick="exportMod()">Exportar y Descargar Mod</button>
 </section>
 
 </main>
@@ -138,13 +142,19 @@ function showTab(tab){
   event.currentTarget.classList.add('active');
 }
 
-// Previsualización
+// Previsualización y limpiar archivos
 ['blockTexture','itemTexture','mobModel','guiImage','armorTexture'].forEach(id=>{
   document.getElementById(id).addEventListener('change', e=>{
     const file=e.target.files[0];
     if(file) document.getElementById(id+'Preview').src=URL.createObjectURL(file);
   });
 });
+function clearFile(id){
+  const input=document.getElementById(id);
+  input.value="";
+  const preview=document.getElementById(id+'Preview');
+  if(preview) preview.src="";
+}
 
 // Generar elementos
 function generateBlock(){
@@ -172,10 +182,10 @@ function generateArmor(){
   document.getElementById('armorOutput').value=JSON.stringify(armor,null,2);
 }
 
-// Exportar ZIP
-async function exportMod(){
-  const zip=new JSZip();
-  const outputs=[
+// Exportación modular
+async function exportMod() {
+  const zip = new JSZip();
+  const sections = [
     ['blocks.json','blockOutput','blockTexture'],
     ['items.json','itemOutput','itemTexture'],
     ['mobs.json','mobOutput','mobModel'],
@@ -183,26 +193,52 @@ async function exportMod(){
     ['commands.json','commandOutput',''],
     ['armors.json','armorOutput','armorTexture']
   ];
-  for(const [fileName,textareaId,fileInputId] of outputs){
-    const text=document.getElementById(textareaId).value;
-    if(text) zip.file(fileName,text);
+  let anyFile=false;
+
+  for(const [fileName, textareaId, fileInputId] of sections){
+    const text=document.getElementById(textareaId).value.trim();
+    if(text){
+      zip.file(fileName,text);
+      anyFile=true;
+    }
     if(fileInputId){
       const f=document.getElementById(fileInputId).files[0];
       if(f) zip.file(f.name,f);
     }
   }
-  const metadata={mcVersion:document.getElementById('mcVersion').value,modLoader:document.getElementById('modLoader').value};
+
+  if(!anyFile){
+    alert("No hay archivos generados. Crea al menos un bloque, item, mob, GUI, comando o armadura.");
+    return;
+  }
+
+  const metadata={
+    mcVersion:document.getElementById('mcVersion').value,
+    modLoader:document.getElementById('modLoader').value
+  };
   zip.file("metadata.json",JSON.stringify(metadata,null,2));
 
-  const content=await zip.generateAsync({type:"blob"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(content);
-  a.download="mod_export.zip";
-  a.target="_blank"; // abrir en nueva pestaña
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(a.href);
+  const blob = await zip.generateAsync({type:"blob"});
+  const url = URL.createObjectURL(blob);
+
+  const newTab = window.open();
+  newTab.document.write(`
+    <html>
+      <head>
+        <title>Descargar Mod</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #e6f2ff; }
+          a { display:inline-block; padding:20px; background:#1e3a5f; color:white; font-size:1.5em; text-decoration:none; border-radius:10px; margin-top:50px; }
+          a:hover { background:#3a6ea5; }
+        </style>
+      </head>
+      <body>
+        <h1>Tu Mod está listo</h1>
+        <a href="${url}" download="mod_export.zip">Descargar Mod</a>
+        <p>Si estás en iOS, toca el enlace y luego "Compartir → Guardar en Archivos".</p>
+      </body>
+    </html>
+  `);
 }
 </script>
 
